@@ -41,12 +41,14 @@ cp %{SOURCE1001} .
 %build
 ./tools/build.py --clean --target-board=artik --target-arch=armv7l --target-os=tizen --no-init-submodule --no-snapshot --no-parallel-build
 
+%install
+cp build/armhf-linux/debug/iotjs/iotjs %{buildroot}/usr/bin
 mkdir -p %{buildroot}%{_sysconfdir}/opt/upgrade
 
 mkdir -p %{buildroot}/usr/share/license
 cp LICENSE %{buildroot}/usr/share/license/%{name}
 
-#%fdupes %{buildroot}
+%fdupes %{buildroot}
 
 %post
 #/sbin/ldconfig
@@ -69,6 +71,7 @@ cp LICENSE %{buildroot}/usr/share/license/%{name}
 #  fi
 #fi
 
+%files
 %manifest %{name}.manifest
 %defattr(-,root,root,-)
 %dir %{_sysconfdir}/opt/upgrade
