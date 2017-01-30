@@ -18,7 +18,7 @@ include("cmake/option/option_linux_common.cmake")
 
 # arm-linux specific
 if(DEFINED TARGET_BOARD)
-  if(${TARGET_BOARD} STREQUAL "rpi2")
+  if(${TARGET_BOARD} STREQUAL "artik")
     # Tizen specific
     set(FLAGS_COMMON ${FLAGS_COMMON} )
   else()
