@@ -1,0 +1,3 @@
+/iotjs/build/armhf-linux/debug/deps/httpparser/CMakeFiles/edit_cache.dir
+/iotjs/build/armhf-linux/debug/deps/httpparser/CMakeFiles/rebuild_cache.dir
+/iotjs/build/armhf-linux/debug/deps/httpparser/CMakeFiles/httpparser.dir

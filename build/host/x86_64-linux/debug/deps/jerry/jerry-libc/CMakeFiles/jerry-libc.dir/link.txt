@@ -1,0 +1,2 @@
+/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-ar qc ../lib/libjerry-libc.a  CMakeFiles/jerry-libc.dir/jerry-libc-printf.c.o CMakeFiles/jerry-libc.dir/jerry-libc.c.o CMakeFiles/jerry-libc.dir/target/posix/jerry-libc-target.c.o CMakeFiles/jerry-libc.dir/target/posix/jerry-asm.S.o
+/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-ranlib ../lib/libjerry-libc.a

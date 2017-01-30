@@ -1,0 +1,10 @@
+[submodule "deps/jerry"]
+	path = deps/jerry
+	url = https://github.com/Samsung/jerryscript.git
+[submodule "deps/http-parser"]
+	path = deps/http-parser
+	url = https://github.com/Samsung/http-parser.git
+[submodule "deps/libtuv"]
+	path = deps/libtuv
+	url = https://github.com/pmarcinkiew/libtuv.git
+	branch = rpi2_build

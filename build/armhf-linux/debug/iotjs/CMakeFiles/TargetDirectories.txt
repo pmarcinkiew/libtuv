@@ -1,0 +1,5 @@
+/iotjs/build/armhf-linux/debug/iotjs/CMakeFiles/edit_cache.dir
+/iotjs/build/armhf-linux/debug/iotjs/CMakeFiles/targetLibIoTjs.dir
+/iotjs/build/armhf-linux/debug/iotjs/CMakeFiles/iotjs.dir
+/iotjs/build/armhf-linux/debug/iotjs/CMakeFiles/libiotjs.dir
+/iotjs/build/armhf-linux/debug/iotjs/CMakeFiles/rebuild_cache.dir
