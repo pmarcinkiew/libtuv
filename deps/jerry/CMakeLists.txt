@@ -141,7 +141,7 @@ endif()
 
 # Turn off linking to compiler's default libc, in case jerry-libc is used
 if(JERRY_LIBC)
-  jerry_add_link_flags(-nostdlib)
+  jerry_add_link_flags(-nostdlib -lgccunwind)
 endif()
 
 # Turn off stack protector
