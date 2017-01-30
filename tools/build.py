@@ -380,7 +380,7 @@ def build_tuv(option):
     fs.copy(output, libtuv_output_path)
 
     #clean cmake for GBS
-    ex.check_run_cmd('rm -r /CMakeCache.txt')
+    #ex.check_run_cmd('rm -r /CMakeCache.txt')
 
     return True
 
