@@ -39,7 +39,7 @@ IoT.js
 cp %{SOURCE1001} .
 
 %build
-%./tools/build.py --clean --target-board=rpi2 --target-arch=armhf --target-os=linux --no-init-submodule --no-snapshot --no-parallel-build
+./tools/build.py --clean --target-board=rpi2 --target-arch=armhf --target-os=linux --no-init-submodule --no-snapshot --no-parallel-build
 
 %__make %{?_smp_mflags}
 
