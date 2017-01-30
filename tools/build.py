@@ -552,6 +552,8 @@ def build_libhttpparser(option):
         cmake_opt.append('-DOS=NUTTX')
     if option.target_os == 'linux':
         cmake_opt.append('-DOS=LINUX')
+    if option.target_os == 'tizen':
+        cmake_opt.append('-DOS=TIZEN')
 
     # inflate cmake option.
     inflate_cmake_option(cmake_opt, option)
@@ -574,10 +576,6 @@ def build_libhttpparser(option):
 
     # copy
     fs.copy(output, libhttpparser_output_path)
-
-    #clean cmake for GBS
-    ex.check_run_cmd('rm -r /CMakeFiles')
-    ex.check_run_cmd('rm -r /CMakeCache.txt')
 
     return True
 
