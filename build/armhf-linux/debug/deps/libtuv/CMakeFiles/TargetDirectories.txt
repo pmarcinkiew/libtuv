@@ -1,3 +1,0 @@
-/iotjs/build/armhf-linux/debug/deps/libtuv/CMakeFiles/edit_cache.dir
-/iotjs/build/armhf-linux/debug/deps/libtuv/CMakeFiles/rebuild_cache.dir
-/iotjs/build/armhf-linux/debug/deps/libtuv/CMakeFiles/tuv.dir

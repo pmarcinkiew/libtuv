@@ -1,2 +1,0 @@
-/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-ar qc libhttpparser.a  CMakeFiles/httpparser.dir/http_parser.c.o
-/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-ranlib libhttpparser.a

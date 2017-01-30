@@ -1,1 +1,0 @@
-/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-gcc  -D__LINUX__ -fno-builtin -DDEBUG -DENABLE_DEBUG_LOG -DTARGET_BOARD=RP2 -std=gnu99 -g  -pthread -pthread CMakeFiles/iotjs.dir/iotjs_linux.c.o  -o iotjs -rdynamic liblibiotjs.a ../lib/libjerrycore.a ../lib/libtuv.a ../lib/libhttpparser.a -lm -lrt 
