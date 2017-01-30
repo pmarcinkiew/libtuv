@@ -69,7 +69,7 @@ cp LICENSE %{buildroot}/usr/share/license/%{name}
 #  fi
 #fi
 
-%files
+#%files
 %manifest %{name}.manifest
 %defattr(-,root,root,-)
 %dir %{_sysconfdir}/opt/upgrade
