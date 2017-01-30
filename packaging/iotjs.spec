@@ -46,7 +46,7 @@ mkdir -p %{buildroot}%{_sysconfdir}/opt/upgrade
 mkdir -p %{buildroot}/usr/share/license
 cp LICENSE %{buildroot}/usr/share/license/%{name}
 
-%fdupes %{buildroot}
+#%fdupes %{buildroot}
 
 %post
 #/sbin/ldconfig
