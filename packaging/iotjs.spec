@@ -41,8 +41,6 @@ cp %{SOURCE1001} .
 %build
 ./tools/build.py --clean --target-board=artik --target-arch=armv7l --target-os=tizen --no-init-submodule --no-snapshot --no-parallel-build
 
-%__make %{?_smp_mflags}
-
 %install
 #%make_install
 mkdir -p %{buildroot}%{_sysconfdir}/opt/upgrade
