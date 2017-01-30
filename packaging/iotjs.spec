@@ -42,7 +42,7 @@ cp %{SOURCE1001} .
 ./tools/build.py --clean --target-board=artik --target-arch=armv7l --target-os=tizen --no-init-submodule --no-snapshot --no-parallel-build
 
 %install
-cp %{buildroot}/build/armhf-linux/debug/iotjs/iotjs %{buildroot}/usr/bin
+cp /usr/src/packages/BUILD/iotjs-0.0.1/build/armv7l-tizen/debug/iotjs/iotjs %{buildroot}/usr/bin
 mkdir -p %{buildroot}%{_sysconfdir}/opt/upgrade
 
 mkdir -p %{buildroot}/usr/share/license
