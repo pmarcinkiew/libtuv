@@ -379,6 +379,10 @@ def build_tuv(option):
     fs.maybe_make_directory(build_libs)
     fs.copy(output, libtuv_output_path)
 
+    #clean cmake for GBS
+    ex.check_run_cmd('rm -r /CMakeFiles')
+    ex.check_run_cmd('rm -r /CMakeCache.txt')
+
     return True
 
 
@@ -433,6 +437,10 @@ def build_jerry(option):
 
     # copy
     fs.copy(output, jerry_output_path)
+
+    #clean cmake for GBS
+    ex.check_run_cmd('rm -r /CMakeFiles')
+    ex.check_run_cmd('rm -r /CMakeCache.txt')
 
     return True
 
@@ -527,6 +535,10 @@ def build_libjerry(option):
         # copy
         fs.copy(output, target['dest_path'])
 
+        #clean cmake for GBS
+        ex.check_run_cmd('rm -r /CMakeFiles')
+        ex.check_run_cmd('rm -r /CMakeCache.txt')
+
     return True
 
 
@@ -574,6 +586,10 @@ def build_libhttpparser(option):
 
     # copy
     fs.copy(output, libhttpparser_output_path)
+
+    #clean cmake for GBS
+    ex.check_run_cmd('rm -r /CMakeFiles')
+    ex.check_run_cmd('rm -r /CMakeCache.txt')
 
     return True
 
@@ -713,6 +729,10 @@ def build_iotjs(option):
     # copy
     dest_path = libiotjs_output_path if option.buildlib else iotjs_output_path
     fs.copy(output, dest_path)
+
+    #clean cmake for GBS
+    ex.check_run_cmd('rm -r /CMakeFiles')
+    ex.check_run_cmd('rm -r /CMakeCache.txt')
 
     return True
 
