@@ -1,0 +1,311 @@
+#!/bin/sh
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+
+source /etc/tizen-platform.conf
+
+PARSER_DB_NAME=.pkgmgr_parser.db
+PARSER_BACKUP_DB_NAME=.pkgmgr_parser_backup.db
+PARSER_DB_PATH=$TZ_SYS_DB/$PARSER_DB_NAME
+PARSER_BACKUP_DB_PATH=$TZ_SYS_DB/$PARSER_BACKUP_DB_NAME
+DB_RESULT_FILE=/tmp/result.log
+
+OPT_USR_APPS=/opt/usr/apps
+
+#define owner user
+DEFAULT_USER=$TZ_SYS_DEFAULT_USER
+
+#define /opt/usr/home/owner
+DEFAULT_USER_HOME=$TZ_SYS_HOME/$DEFAULT_USER
+
+#define /opt/usr/home/owner/apps_rw
+DEFAULT_USER_APPS_RW=$DEFAULT_USER_HOME/apps_rw
+
+#define /opt/share/packages
+DEFAULT_PKG_MANIFEST_LOCATION=$TZ_SYS_RW_PACKAGES
+
+#define /opt/usr/globalapps
+DEFAULT_PKG_APP_LOCATION=$TZ_SYS_RW_APP
+
+
+DEFAULT_RO_OWNER_GROUP=tizenglobalapp:root
+DEFAULT_MANIFEST_SMACK_LABEL=System
+
+DEFAULT_RW_OWNER_GROUP=owner:users
+DEFAULT_RW_SMACK_LABEL=User::Pkg::
+DEFAULT_RO_SMACK_LABEL=User::Home
+
+TIZEN_MANIFEST=tizen-manifest.xml
+
+OWNER_SYSTEM_SHARE=owner:system_share
+TRUSTED_LABEL=User::Author::1
+
+#----------------------------------
+# upgrade script for pkgmgr
+#----------------------------------
+
+function backup_db(){
+	echo "#backup previous DB"
+	mv $PARSER_DB_PATH $PARSER_BACKUP_DB_PATH
+}
+
+function remove_modified_manifest(){
+	echo "#remove modified manifest"
+	rm -rf $DEFAULT_PKG_MANIFEST_LOCATION/*
+}
+
+function remove_unregistered_pkg(){
+	#remove pkg folder which is not registered at pkg db
+	rm -rf $OPT_USR_APPS/media-server
+	rm -rf $OPT_USR_APPS/org.tizen.indicator_Shm
+	rm -rf $OPT_USR_APPS/org.tizen.sound-player
+	rm -rf $OPT_USR_APPS/tmp
+}
+
+function move_user_tpk_ro_files(){
+	#this copy will copy whole things include userdata
+	local package=$1
+	cp -af $OPT_USR_APPS/$package $DEFAULT_PKG_APP_LOCATION/
+	chown -R $DEFAULT_RO_OWNER_GROUP $DEFAULT_PKG_APP_LOCATION/$package
+	chsmack -r -t -a $DEFAULT_RO_SMACK_LABEL $DEFAULT_PKG_APP_LOCATION/$package
+	chsmack -r -t -a $DEFAULT_RW_SMACK_LABEL$package::RO $DEFAULT_PKG_APP_LOCATION/$package/bin
+	chsmack -r -t -a $DEFAULT_RW_SMACK_LABEL$package::RO $DEFAULT_PKG_APP_LOCATION/$package/lib
+	chsmack -r -t -a $DEFAULT_RW_SMACK_LABEL$package::RO $DEFAULT_PKG_APP_LOCATION/$package/res
+	chsmack -r -t -a $DEFAULT_RO_SMACK_LABEL $DEFAULT_PKG_APP_LOCATION/$package/shared
+
+}
+
+function move_user_tpk_rw_files(){
+	local package=$1
+	mkdir -m 751 $DEFAULT_USER_APPS_RW/$package
+	chsmack -r -t -a $DEFAULT_RO_SMACK_LABEL $DEFAULT_USER_APPS_RW/$package
+	mkdir $DEFAULT_USER_APPS_RW/$package/shared
+	chown -R $DEFAULT_RW_OWNER_GROUP $DEFAULT_USER_APPS_RW/$package
+
+	mv $DEFAULT_PKG_APP_LOCATION/$package/cache $DEFAULT_USER_APPS_RW/$package/
+	mv $DEFAULT_PKG_APP_LOCATION/$package/data $DEFAULT_USER_APPS_RW/$package/
+	chmod g+s $DEFAULT_USER_APPS_RW/$package/data
+	chmod 771 $DEFAULT_USER_APPS_RW/$package/data
+	mv $DEFAULT_PKG_APP_LOCATION/$package/shared/data $DEFAULT_USER_APPS_RW/$package/shared/
+	mv $DEFAULT_PKG_APP_LOCATION/$package/shared/trusted $DEFAULT_USER_APPS_RW/$package/shared/
+
+	chown -R $DEFAULT_RW_OWNER_GROUP $DEFAULT_USER_APPS_RW/$package/cache
+	chown -R $OWNER_SYSTEM_SHARE $DEFAULT_USER_APPS_RW/$package/data
+	chown -R $DEFAULT_RW_OWNER_GROUP $DEFAULT_USER_APPS_RW/$package/shared
+	chown -R $OWNER_SYSTEM_SHARE $DEFAULT_USER_APPS_RW/$package/shared/data
+
+	chsmack -r -t -a $TRUSTED_LABEL $DEFAULT_USER_APPS_RW/$package/shared/trusted
+	chsmack -r -t -a $DEFAULT_RW_SMACK_LABEL$package::SharedRO $DEFAULT_USER_APPS_RW/$package/shared/data
+	chsmack -r -t -a $DEFAULT_RW_SMACK_LABEL$package $DEFAULT_USER_APPS_RW/$package/cache
+	chsmack -r -t -a $DEFAULT_RW_SMACK_LABEL$package $DEFAULT_USER_APPS_RW/$package/data
+
+	#remove shared/cache
+	echo "deleting $DEFAULT_PKG_APP_LOCATION/$package/shared/cache"
+	rm -rf $DEFAULT_PKG_APP_LOCATION/$package/shared/cache
+}
+
+function move_user_tpk_files(){
+	echo "#move user TPK's files"
+	echo "SELECT package FROM package_info WHERE package_preload='false' COLLATE NOCASE AND package_type='tpk' COLLATE NOCASE;" |
+	sqlite3 $PARSER_BACKUP_DB_PATH > $DB_RESULT_FILE
+
+	while read package
+	do
+		echo "processing user tpk $package..."
+		move_user_tpk_ro_files $package
+		move_user_tpk_rw_files $package
+	done < $DB_RESULT_FILE
+	rm -f $DB_RESULT_FILE
+}
+
+function move_user_wgt_ro_files(){
+	#this copy will copy whole things include userdata
+	local package=$1
+	cp -af --no-preserve=ownership $OPT_USR_APPS/$package $DEFAULT_PKG_APP_LOCATION/
+	chown -R $DEFAULT_RO_OWNER_GROUP $DEFAULT_PKG_APP_LOCATION/$package
+	chsmack -r -t -a $DEFAULT_RO_SMACK_LABEL $DEFAULT_PKG_APP_LOCATION/$package
+	chsmack -r -t -a $DEFAULT_RW_SMACK_LABEL$package::RO $DEFAULT_PKG_APP_LOCATION/$package/bin
+	chsmack -r -t -a $DEFAULT_RW_SMACK_LABEL$package::RO $DEFAULT_PKG_APP_LOCATION/$package/res
+	chsmack -r -t -a $DEFAULT_RO_SMACK_LABEL $DEFAULT_PKG_APP_LOCATION/$package/shared
+	chsmack -r -t -a $DEFAULT_RW_SMACK_LABEL$package $DEFAULT_PKG_APP_LOCATION/$package/tmp
+}
+
+function move_user_wgt_rw_files(){
+	local package=$1
+	mkdir -m 751 $DEFAULT_USER_APPS_RW/$package
+	chsmack -r -t -a $DEFAULT_RO_SMACK_LABEL $DEFAULT_USER_APPS_RW/$package
+
+	mkdir -m 751 $DEFAULT_USER_APPS_RW/$package/shared
+	mkdir -m 751 $DEFAULT_USER_APPS_RW/$package/cache
+
+	chown -R $DEFAULT_RW_OWNER_GROUP $DEFAULT_USER_APPS_RW/$package
+
+	mv $DEFAULT_PKG_APP_LOCATION/$package/data $DEFAULT_USER_APPS_RW/$package/
+	mv $DEFAULT_PKG_APP_LOCATION/$package/shared/data $DEFAULT_USER_APPS_RW/$package/shared/
+	mv $DEFAULT_PKG_APP_LOCATION/$package/shared/trusted $DEFAULT_USER_APPS_RW/$package/shared/
+	chmod 751 $DEFAULT_USER_APPS_RW/$package/shared/trusted
+	chmod g+s $DEFAULT_USER_APPS_RW/$package/data
+	chmod 771 $DEFAULT_USER_APPS_RW/$package/data
+
+	chown -R $OWNER_SYSTEM_SHARE $DEFAULT_USER_APPS_RW/$package/data
+	chown -R $DEFAULT_RW_OWNER_GROUP $DEFAULT_USER_APPS_RW/$package/shared
+	chown -R $OWNER_SYSTEM_SHARE $DEFAULT_USER_APPS_RW/$package/shared/data
+
+	chsmack -r -t -a $DEFAULT_RW_SMACK_LABEL$package $DEFAULT_USER_APPS_RW/$package/cache
+	chsmack -r -t -a $DEFAULT_RW_SMACK_LABEL$package $DEFAULT_USER_APPS_RW/$package/data
+	chsmack -r -t -a $TRUSTED_LABEL $DEFAULT_USER_APPS_RW/$package/shared/trusted
+	chsmack -r -t -a $DEFAULT_RW_SMACK_LABEL$package::SharedRO $DEFAULT_USER_APPS_RW/$package/shared/data
+}
+
+
+function move_user_wgt_files(){
+	echo "#move user WGT's files"
+	echo "SELECT package FROM package_info WHERE package_preload='false' COLLATE NOCASE AND package_type='wgt' COLLATE NOCASE;" |
+	sqlite3 $PARSER_BACKUP_DB_PATH > $DB_RESULT_FILE
+
+	while read package
+	do
+		echo "processing user wgt $package..."
+		move_user_wgt_ro_files $package
+		move_user_wgt_rw_files $package
+	done < $DB_RESULT_FILE
+	rm -f $DB_RESULT_FILE
+
+}
+
+function initdb(){
+	echo "#pkg_initdb"
+	pkg_initdb --partial-rw
+
+	mkdir -m 770 -p /opt/dbspace/user/5001
+	chmod 755 /opt/dbspace/user
+	chsmack -r -a User::Home /opt/dbspace/user
+	chown $OWNER_SYSTEM_SHARE /opt/dbspace/user/5001
+
+	pkg_initdb --uid 5001
+}
+
+function migrate_user_tpk(){
+	#run manifest direct install of user tpk pkgs
+	echo ".separator \" \"
+	    SELECT package, LOWER(package_type) FROM package_info WHERE package_preload='false' COLLATE NOCASE AND (package_type='tpk' COLLATE NOCASE OR package_type='wgt' COLLATE NOCASE);" |
+	sqlite3 $PARSER_BACKUP_DB_PATH > $DB_RESULT_FILE
+
+	while read package type
+	do
+		echo "processing $package..."
+		$type-backend -y $package
+	done < $DB_RESULT_FILE
+	rm -f $DB_RESULT_FILE
+}
+
+function remove_files_for_deleted_packages(){
+	#delete userdata of packages which are removed in 3.0
+	echo "#delete userdata of removed packages"
+	echo "ATTACH DATABASE '$PARSER_BACKUP_DB_PATH' AS backup;
+	    SELECT package FROM backup.package_info WHERE package_preload='true' COLLATE NOCASE AND
+	    package NOT IN (SELECT package FROM package_info);" |
+	sqlite3 $PARSER_DB_PATH > $DB_RESULT_FILE
+
+	while read package
+	do
+		echo "rm -r $OPT_USR_APPS/$package"
+		rm -r $OPT_USR_APPS/$package
+		done < $DB_RESULT_FILE
+	rm -f $DB_RESULT_FILE
+}
+
+function move_preload_pkg_userdata(){
+	echo "#move preload pkg's userdata"
+	echo "ATTACH DATABASE '$PARSER_BACKUP_DB_PATH' AS backup;
+	    SELECT package FROM backup.package_info WHERE package_preload='true' COLLATE NOCASE AND
+	    package IN (SELECT package FROM package_info);" |
+	sqlite3 $PARSER_DB_PATH > $DB_RESULT_FILE
+	while read package
+	do
+		echo "processing preload pkg $package..."
+		cp -af $OPT_USR_APPS/$package $DEFAULT_USER_APPS_RW/
+		chown -R $DEFAULT_RW_OWNER_GROUP $DEFAULT_USER_APPS_RW/$package
+		chown -R $OWNER_SYSTEM_SHARE $DEFAULT_USER_APPS_RW/$package/data
+		chmod g+s $DEFAULT_USER_APPS_RW/$package/data
+		chmod 771 $DEFAULT_USER_APPS_RW/$package/data
+		rm -rf $OPT_USR_APPS/$package
+
+		rm -rf $DEFAULT_USER_APPS_RW/$package/shared/cache
+		rm -rf $DEFAULT_USER_APPS_RW/$package/shared/data
+
+		chsmack -r -t -a $DEFAULT_RO_SMACK_LABEL $DEFAULT_USER_APPS_RW/$package
+		chsmack -r -t -a $DEFAULT_RW_SMACK_LABEL$package $DEFAULT_USER_APPS_RW/$package/cache
+		chsmack -r -t -a $DEFAULT_RW_SMACK_LABEL$package $DEFAULT_USER_APPS_RW/$package/data
+		if [ -d $DEFAULT_USER_APPS_RW/$package/shared/trusted ];
+		then
+			chsmack -r -t -a $TRUSTED_LABEL $DEFAULT_USER_APPS_RW/$package/shared/trusted
+		fi
+
+	done < $DB_RESULT_FILE
+	rm -f $DB_RESULT_FILE
+}
+
+function disable_preload_pkg(){
+	echo "#disable preload rpm, tpk pkg"
+	echo "ATTACH DATABASE '$PARSER_BACKUP_DB_PATH' AS backup;
+	    SELECT package FROM backup.package_info WHERE package_preload='true' COLLATE NOCASE AND package_type!='wgt' COLLATE NOCASE AND package_disable='true' COLLATE NOCASE AND
+	    package IN (SELECT package FROM package_info);" |
+	sqlite3 $PARSER_DB_PATH > $DB_RESULT_FILE
+
+	while read package
+	do
+		echo "disable preload tpk, rpm $package..."
+		tpk-backend -D $package --preload
+	done < $DB_RESULT_FILE
+	rm -f $DB_RESULT_FILE
+
+	echo "#disable preload wgt pkg"
+	echo "ATTACH DATABASE '$PARSER_BACKUP_DB_PATH' AS backup;
+	    SELECT package FROM backup.package_info WHERE package_preload='true' COLLATE NOCASE AND package_type='wgt' COLLATE NOCASE AND package_disable='true' COLLATE NOCASE AND
+	    package IN (SELECT package FROM package_info);" |
+	sqlite3 $PARSER_DB_PATH > $DB_RESULT_FILE
+
+	while read package
+	do
+		echo "disable preload wgt $package..."
+		wgt-backend -D $package --preload
+	done < $DB_RESULT_FILE
+	rm -f $DB_RESULT_FILE
+}
+
+function disable_user_pkg(){
+	echo "#disable user pkg"
+	echo ".separator \" \"
+	    ATTACH DATABASE '$PARSER_BACKUP_DB_PATH' AS backup;
+	    SELECT package, package_type FROM backup.package_info WHERE package_preload='false' COLLATE NOCASE AND package_type !='rpm' COLLATE NOCASE AND package_disable='true' COLLATE NOCASE AND
+	    package IN (SELECT package FROM package_info);" |
+	sqlite3 $PARSER_DB_PATH > $DB_RESULT_FILE
+
+	while read package type
+	do
+		$type-backend -D $package
+		done < $DB_RESULT_FILE
+	rm -f $DB_RESULT_FILE
+}
+
+function remove_backup_db(){
+	rm $PARSER_BACKUP_DB_PATH
+}
+
+backup_db
+
+remove_modified_manifest
+remove_unregistered_pkg
+
+move_user_tpk_files
+move_user_wgt_files
+
+initdb
+
+remove_files_for_deleted_packages
+move_preload_pkg_userdata
+
+disable_preload_pkg
+disable_user_pkg
+
+remove_backup_db
