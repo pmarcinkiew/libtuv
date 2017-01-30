@@ -141,8 +141,11 @@ endif()
 
 # Turn off linking to compiler's default libc, in case jerry-libc is used
 if(JERRY_LIBC)
-  jerry_add_link_flags(-nostdlib -fno-exceptions -fno-unwind-tables)
-  jerry_add_compile_flags(-fno-exceptions -fno-unwind-tables)
+  jerry_add_link_flags(-nostdlib)
+#  jerry_add_link_flags(-fno-exceptions)
+#  jerry_add_link_flags(-fno-unwind-tables)
+  jerry_add_compile_flags(-fno-exceptions)
+  jerry_add_compile_flags(-fno-unwind-tables)
 endif()
 
 # Turn off stack protector
