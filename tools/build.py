@@ -716,10 +716,6 @@ def build_iotjs(option):
     dest_path = libiotjs_output_path if option.buildlib else iotjs_output_path
     fs.copy(output, dest_path)
 
-    #clean cmake for GBS
-    ex.check_run_cmd('rm -r /CMakeFiles')
-    ex.check_run_cmd('rm -r /CMakeCache.txt')
-
     return True
 
 
