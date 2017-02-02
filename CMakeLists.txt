@@ -1,4 +1,4 @@
-# Copyright 2015-present Samsung Electronics Co., Ltd. and other contributors
+# Copyright 2015 Samsung Electronics Co., Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,15 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.12)
+project(libtuv C)
 
-project(IOTJS C)
+set(LIBTUV_VERSION_MAJOR 0)
+set(LIBTUV_VERSION_MINOR 1)
 
-set(IOTJS_VERSION_MAJOR 0)
-set(IOTJS_VERSION_MINOR 1)
-
-include(cmake/config.cmake)
+#
+# + unix_common: unix like, posix, multi-tasking
+#     + linux_common
+#         + arm-linux
+#         + i686-linux
+#         + x86_64-linux
+#     + arm-nuttx
+# + (mtsk_common: multi-tasking
+#     + (TBD)
+# + raw_common: single task, big-while-loop, event driven
+#     + arm-mbed
+#
+include(cmake/options.cmake)
 include(cmake/libtuv.cmake)
-include(cmake/jerry.cmake)
-include(cmake/http-parser.cmake)
-include(cmake/iotjs.cmake)
+if (DEFINED BUILDTESTER AND "${BUILDTESTER}" STREQUAL "yes")
+  include(cmake/tuvtest.cmake)
+elseif (DEFINED BUILDAPIEMULTESTER AND "${BUILDAPIEMULTESTER}" STREQUAL "yes")
+  include(cmake/apiemultest.cmake)
+endif()
+
+unset(BUILDTESTER CACHE)
+unset(BUILDAPIEMULTESTER CACHE)
+unset(BUILD_TEST_LIB CACHE)
+unset(BUILD_HOST_HELPER CACHE)

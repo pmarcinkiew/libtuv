@@ -1,5 +1,5 @@
-Name:       iotjs
-Summary:    IoT.js
+Name:       libtuv
+Summary:    libtuv
 Version:    0.0.1
 Release:    1
 Group:      Application Framework/Package Management
@@ -11,7 +11,7 @@ Requires:  unzip
 Requires:  smack
 
 BuildRequires:  cmake
-BuildRequires:  python
+#BuildRequires:  python
 BuildRequires:  gettext-tools
 #BuildRequires:  pkgconfig(dbus-glib-1)
 ##BuildRequires:  pkgconfig(glib-2.0)
@@ -32,18 +32,18 @@ BuildRequires:  pkgconfig(dlog)
 #Requires(posttrans):  /usr/bin/pkg_initdb
 
 %description
-IoT.js
+libtuv
 
 %prep
 %setup -q
 cp %{SOURCE1001} .
 
 %build
-./tools/build.py --clean --target-board=artik --target-arch=armv7l --target-os=tizen --no-init-submodule --no-snapshot --no-parallel-build
+TUV_PLATFORM=armv7l-tizen TUV_BOARD=artik make
 
 %install
 mkdir -p %{buildroot}/usr/bin
-cp /usr/src/packages/BUILD/iotjs-0.0.1/build/armv7l-tizen/debug/iotjs/iotjs %{buildroot}/usr/bin
+cp /usr/src/packages/BUILD/libtuv-0.0.1/build/armv7l-tizen/debug/bin/tuvtester %{buildroot}/usr/bin
 mkdir -p %{buildroot}%{_sysconfdir}/opt/upgrade
 
 mkdir -p %{buildroot}/usr/share/license
@@ -76,7 +76,7 @@ cp LICENSE %{buildroot}/usr/share/license/%{name}
 %manifest %{name}.manifest
 %defattr(-,root,root,-)
 %dir %{_sysconfdir}/opt/upgrade
-%{_bindir}/iotjs
+%{_bindir}/tuvtester
 #%{_bindir}/pkgcmd
 #%{_bindir}/pkg_getsize
 #%{_bindir}/pkg_cleardata
