@@ -39,7 +39,7 @@ libtuv
 cp %{SOURCE1001} .
 
 %build
-TUV_PLATFORM=armv7l-tizen make
+make
 
 %install
 mkdir -p %{buildroot}/usr/bin
