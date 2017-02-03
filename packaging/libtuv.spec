@@ -39,7 +39,7 @@ libtuv
 cp %{SOURCE1001} .
 
 %build
-TUV_PLATFORM=armv7l-linux TUV_BOARD=artik make
+TUV_PLATFORM=armv7l-tizen TUV_BOARD=artik make
 
 %install
 mkdir -p %{buildroot}/usr/bin
