@@ -43,7 +43,7 @@ TUV_PLATFORM=armv7l-tizen TUV_BOARD=artik make
 
 %install
 mkdir -p %{buildroot}/usr/bin
-cp /usr/src/packages/BUILD/libtuv-0.0.1/build/armv7l-linux/debug/bin/tuvtester %{buildroot}/usr/bin
+cp /usr/src/packages/BUILD/libtuv-0.0.1/build/armv7l-tizen/debug/bin/tuvtester %{buildroot}/usr/bin
 mkdir -p %{buildroot}%{_sysconfdir}/opt/upgrade
 
 mkdir -p %{buildroot}/usr/share/license
