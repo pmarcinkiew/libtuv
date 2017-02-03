@@ -39,7 +39,7 @@ libtuv
 cp %{SOURCE1001} .
 
 %build
-TUV_PLATFORM=arm-linux TUV_BOARD=rpi2 make
+TUV_PLATFORM=armv7l-linux TUV_BOARD=artik make
 
 %install
 mkdir -p %{buildroot}/usr/bin

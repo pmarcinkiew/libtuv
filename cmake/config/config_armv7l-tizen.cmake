@@ -14,6 +14,6 @@
 
 include(CMakeForceCompiler)
 
-set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_SYSTEM_PROCESSOR armv7l)
+#set(CMAKE_SYSTEM_NAME Linux)
+#set(CMAKE_SYSTEM_PROCESSOR armv7l)
 
