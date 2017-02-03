@@ -39,7 +39,7 @@ libtuv
 cp %{SOURCE1001} .
 
 %build
-make
+TUV_PLATFORM=noarch-linux make
 
 %install
 mkdir -p %{buildroot}/usr/bin
