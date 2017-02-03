@@ -16,14 +16,3 @@
 include("cmake/option/option_unix_common.cmake")
 include("cmake/option/option_linux_common.cmake")
 
-# arm-linux specific
-if(DEFINED TARGET_BOARD)
-  if(${TARGET_BOARD} STREQUAL "artik")
-    # Tizen specific
-    set(FLAGS_COMMON ${FLAGS_COMMON} )
-  else()
-    message(FATAL_ERROR "TARGET_BOARD=`${TARGET_BOARD}` is unknown to make")
-  endif()
-else()
-  message(FATAL_ERROR "TARGET_BOARD is undefined")
-endif()

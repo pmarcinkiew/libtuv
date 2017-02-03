@@ -39,7 +39,7 @@ libtuv
 cp %{SOURCE1001} .
 
 %build
-TUV_PLATFORM=arm-linux TV_BOARD=rpi2 make
+TUV_PLATFORM=armv7l-tizen make
 
 %install
 mkdir -p %{buildroot}/usr/bin
