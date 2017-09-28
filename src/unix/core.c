@@ -52,7 +52,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <limits.h> /* INT_MAX, PATH_MAX, IOV_MAX */
-#if !defined(__TIZENRT__)
+#if !defined(__TIZENRT__) && !defined(__NUTTX__)
 # include <sys/uio.h> /* writev */
 # include <pwd.h>
 #endif

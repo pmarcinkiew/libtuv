@@ -54,7 +54,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#if !defined(__TIZENRT__)
+#if !defined(__TIZENRT__) && !defined(__NUTTX__)
 # include <sys/uio.h> /* writev */
 # include <utime.h>
 #endif
