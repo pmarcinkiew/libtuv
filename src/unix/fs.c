@@ -57,6 +57,12 @@
 #if !defined(__TIZENRT__) && !defined(__NUTTX__)
 # include <sys/uio.h> /* writev */
 # include <utime.h>
+#else
+# if defined(__NUTTX__)
+#  include <nuttx/config.h>
+# else 
+#  include <tinyara/config.h>
+# endif
 #endif
 #include <pthread.h>
 #include <unistd.h>
@@ -142,6 +148,102 @@
   }                                                                           \
   while (0)
 
+#if defined(__NUTTX__) || defined(__TIZENRT__)
+static void uv__to_stat(struct stat* src, uv_stat_t* dst);
+// TODO: thread-safety
+
+#define LIBTUV_MAX_DIRFD 4
+#define LUBTUV_DIRFD_BASE CONFIG_NFILE_DESCRIPTORS
+typedef struct direntry_s {
+  DIR *dirfd;
+  char *path;
+} direntry;
+static direntry dirfds[LIBTUV_MAX_DIRFD];
+
+static int is_dirfd(int fd) {
+  unsigned idx = fd - LUBTUV_DIRFD_BASE;
+  if (idx < LIBTUV_MAX_DIRFD) {
+    return dirfds[idx].dirfd != NULL;
+  }
+  return 0;
+}
+static DIR *dirfd_getdir(int fd) {
+  unsigned idx = fd - LUBTUV_DIRFD_BASE;
+  if (idx < LIBTUV_MAX_DIRFD) {
+    return dirfds[idx].dirfd;
+  }
+  return NULL;
+}
+static const char *dirfd_getpath(int fd) {
+  unsigned idx = fd - LUBTUV_DIRFD_BASE;
+  if (idx < LIBTUV_MAX_DIRFD && dirfds[idx].dirfd != NULL) {
+    return dirfds[idx].path;
+  }
+  return NULL;
+}
+static int alloc_dirfd(DIR *dir, const char *path) {
+  if (dir == NULL || path == NULL) {
+    errno = EINVAL;
+    return -1;
+  }
+  int i;
+  for (i = 0; i < LIBTUV_MAX_DIRFD; ++i)
+    if (dirfds[i].dirfd == NULL) break;
+  if (i < LIBTUV_MAX_DIRFD) {
+    if (!(dirfds[i].path = strdup(path))) {
+      errno = ENOMEM;
+      return -1;
+    }
+    dirfds[i].dirfd = dir;
+    return LUBTUV_DIRFD_BASE + i;
+  } else {
+    errno = ENOMEM;
+    return -1;
+  }
+}
+static int free_dirfd(int fd) {
+  if (is_dirfd(fd)) {
+    unsigned idx = fd - LUBTUV_DIRFD_BASE;
+    free(dirfds[idx].path);
+    dirfds[idx].dirfd = NULL;
+    return 0;
+  }
+  return -EBADF;
+}
+
+static int uv__fs_closedirfd(int fd) {
+  if (is_dirfd(fd)) {
+    DIR *dir = dirfd_getdir(fd);
+    assert(!free_dirfd(fd));
+    return closedir(dir);
+  } else {
+    errno = EBADF;
+    return -1;
+  }
+}
+static int uv__fs_fstatdir(int fd, uv_stat_t *buf) {
+  int ret = -1;
+
+  if (is_dirfd(fd)) {
+    const char *path = dirfd_getpath(fd);
+    struct stat pbuf;
+    ret = stat(path, &pbuf);
+    if (ret == 0)
+      uv__to_stat(&pbuf, buf);
+  } else {
+    errno = EBADF;
+  }
+  return ret;
+}
+static int uv__fs_futimedir(req) {
+  errno = EISDIR;
+  return -1;
+}
+static int uv__fs_utimedir(req) {
+  errno = EISDIR;
+  return -1;
+}
+#endif
 
 static ssize_t uv__fs_fdatasync(uv_fs_t* req) {
 #if defined(__linux__) || defined(__sun) || defined(__NetBSD__)
@@ -250,6 +352,9 @@ skip:
 static ssize_t uv__fs_open(uv_fs_t* req) {
   static int no_cloexec_support;
   int r;
+#if defined(__NUTTX__) || defined(__TIZENRT__)
+  DIR *dir = NULL;
+#endif
 
   /* Try O_CLOEXEC before entering locks */
   if (no_cloexec_support == 0) {
@@ -267,10 +372,26 @@ static ssize_t uv__fs_open(uv_fs_t* req) {
     uv_rwlock_rdlock(&req->loop->cloexec_lock);
 
   r = open(req->path, req->flags, req->mode);
+#if defined(__NUTTX__) || defined(__TIZENRT__)
+  if (r < 0 && errno == EISDIR) {
+    dir = opendir(req->path);
+    r = (dir == NULL) ? -1 : 0;
+  }
+#endif
 
   /* In case of failure `uv__cloexec` will leave error in `errno`,
    * so it is enough to just set `r` to `-1`.
    */
+#if defined(__NUTTX__) || defined(__TIZENRT__)
+  if (dir != NULL) {
+    r = alloc_dirfd(dir, req->path);
+    if (r < 0) {
+      int errno_ = errno;
+      closedir(dir);
+      errno = errno_;
+    }
+  } else
+#endif
   if (r >= 0 && uv__cloexec(r, 1) != 0) {
     r = uv__close(r);
     if (r != 0)
@@ -698,29 +819,56 @@ static void uv__fs_work(struct uv__work* w) {
   do {
     errno = 0;
 
-#define X(type, action)                                                       \
+// Path-based operation.
+#define P(type, action)                                                       \
   case UV_FS_ ## type:                                                        \
     r = action;                                                               \
     break;
 
+#if defined(__NUTTX__) || defined(__TIZENRT__)
+// req->file must be a file descriptor (nor dirfd)
+#define X(type, action)                                                       \
+  case UV_FS_ ## type:                                                        \
+    if (is_dirfd(req->file)) {                                                \
+      r = -1; errno = EISDIR;                                                 \
+    } else r = action;                                                        \
+    break;
+    //
+// Depending on req->file perform either file- or dirfd- related operation.
+#define Y(type, action_file, action_dir)                                      \
+  case UV_FS_ ## type:                                                        \
+    if (is_dirfd(req->file)) { r = action_dir; }                              \
+    else { r = action_file; }                                                 \
+    break;
+
+#else
+#define X(type, action) P(type, action)
+#define Y(type, action_file, action_dir) P(type, action_file)
+#endif
+
+
     switch (req->fs_type) {
-    X(CLOSE, close(req->file));
+    Y(CLOSE, close(req->file),
+             uv__fs_closedirfd(req->file));
     X(FDATASYNC, uv__fs_fdatasync(req));
-    X(FSTAT, uv__fs_fstat(req->file, &req->statbuf));
+    Y(FSTAT, uv__fs_fstat(req->file, &req->statbuf),
+             uv__fs_fstatdir(req->file, &req->statbuf));
     X(FSYNC, fsync(req->file));
 #if !defined(__NUTTX__) && !defined(__TIZENRT__)
     X(FTRUNCATE, ftruncate(req->file, req->off));
 #endif
-    X(FUTIME, uv__fs_futime(req));
-    X(MKDIR, mkdir(req->path, req->mode));
-    X(OPEN, uv__fs_open(req));
+    Y(FUTIME, uv__fs_futime(req),
+              uv__fs_futimedir(req));
+    P(MKDIR, mkdir(req->path, req->mode));
+    P(OPEN, uv__fs_open(req));
     X(READ, uv__fs_buf_iter(req, uv__fs_read));
-    X(SCANDIR, uv__fs_scandir(req));
-    X(RENAME, rename(req->path, req->new_path));
-    X(RMDIR, rmdir(req->path));
-    X(STAT, uv__fs_stat(req->path, &req->statbuf));
-    X(UNLINK, unlink(req->path));
-    X(UTIME, uv__fs_utime(req));
+    P(SCANDIR, uv__fs_scandir(req));
+    P(RENAME, rename(req->path, req->new_path));
+    P(RMDIR, rmdir(req->path));
+    P(STAT, uv__fs_stat(req->path, &req->statbuf));
+    P(UNLINK, unlink(req->path));
+    Y(UTIME, uv__fs_utime(req),
+             uv__fs_utimedir(req));
     X(WRITE, uv__fs_buf_iter(req, uv__fs_write));
     default: abort();
     }
