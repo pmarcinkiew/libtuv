@@ -153,7 +153,7 @@ static void uv__to_stat(struct stat* src, uv_stat_t* dst);
 // TODO: thread-safety
 
 #define LIBTUV_MAX_DIRFD 4
-#define LUBTUV_DIRFD_BASE CONFIG_NFILE_DESCRIPTORS
+#define LUBTUV_DIRFD_BASE (CONFIG_NFILE_DESCRIPTORS+CONFIG_NSOCKET_DESCRIPTORS)
 typedef struct direntry_s {
   DIR *dirfd;
   char *path;
