@@ -747,6 +747,10 @@ static int uv__fs_stat(const char *path, uv_stat_t *buf) {
 
 
 static int uv__fs_fstat(int fd, uv_stat_t *buf) {
+#if defined(__NUTTX__)
+  // TODO: remove this cond after NuttX has been upped to 7.22+
+  return -1;
+#else
   struct stat pbuf;
   int ret;
 
@@ -755,6 +759,7 @@ static int uv__fs_fstat(int fd, uv_stat_t *buf) {
     uv__to_stat(&pbuf, buf);
 
   return ret;
+#endif
 }
 
 
