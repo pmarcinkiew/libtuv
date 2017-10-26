@@ -60,7 +60,10 @@ void uv__platform_invalidate_fd(uv_loop_t* loop, int fd) {
   for (i = 0; i < nfd; ++i) {
     struct pollfd* pfd = &loop->pollfds[i];
     if (fd == pfd->fd) {
-      pfd->fd = -1;
+      // Compact immediatelly.
+      if (i < loop->npollfds - 1) {
+        loop->pollfds[i] = loop->pollfds[--loop->npollfds];
+      } else --loop->npollfds;
     }
   }
 }
@@ -152,10 +155,12 @@ static void uv__add_pollfd(uv_loop_t* loop, struct pollfd* pe) {
 
 static void uv__rem_pollfd(uv_loop_t* loop, struct pollfd* pe) {
   int i = 0;
+  int fd = pe->fd;
   while (i < loop->npollfds) {
     struct pollfd* cur = &loop->pollfds[i];
-    if (cur->fd == pe->fd) {
+    if (cur->fd == fd) {
       *cur = loop->pollfds[--loop->npollfds];
+      break;
     } else {
       ++i;
     }
@@ -243,7 +248,7 @@ handle_poll:
         continue;
       }
 
-      if (pe->fd >= 0 && (pe->revents & (POLLIN | POLLOUT | POLLHUP))) {    
+      if (pe->fd >= 0 && (pe->revents & (POLLIN | POLLOUT | POLLHUP))) {
         w->cb(loop, w, pe->revents);
         ++nevents;
       }
